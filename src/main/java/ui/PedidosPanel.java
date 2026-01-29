@@ -15,7 +15,6 @@ public class PedidosPanel extends JPanel {
     
     private JTextField txtFlor = new JTextField();
     private JTextField txtCantidad = new JTextField(); 
-    // ELIMINADO: private JTextField txtIdFlor = new JTextField();
     
     private JCheckBox chkSelectAll = new JCheckBox("Seleccionar todo");
     private JTable table;
@@ -45,10 +44,8 @@ public class PedidosPanel extends JPanel {
         g.gridx = 3; g.weightx = 0.5; g.fill = GridBagConstraints.HORIZONTAL;
         txtCantidad.setPreferredSize(new Dimension(80, 24)); UiTheme.styleTextField(txtCantidad); pnlForm.add(txtCantidad, g);
 
-        // ELIMINADO: Fila que contenía el ID Flor (FK)
-
-        // Fila 2: Botones (Movidos de la fila 2 a la fila 1 para aprovechar el espacio)
-        g.gridx = 0; g.gridy = 1; // Antes era gridy = 2
+        // Fila 2: Botones
+        g.gridx = 0; g.gridy = 1;
         g.gridwidth = 4; g.weightx = 0.0; g.fill = GridBagConstraints.NONE;
         g.insets = new Insets(10, 5, 5, 5);
         
@@ -93,17 +90,12 @@ public class PedidosPanel extends JPanel {
         btnRefrescar.addActionListener(e -> { 
             txtFlor.setText(""); 
             txtCantidad.setText(""); 
-            // ELIMINADO: txtIdFlor.setText("");
             cargarTabla(dao.listar()); 
         });
         
         btnBuscar.addActionListener(e -> {
             List<Pedido> res = dao.listar();
-            
-            // 1. Filtro Flor
             if(!txtFlor.getText().isEmpty()) res = dao.buscar(txtFlor.getText());
-            
-            // 2. Filtro Cantidad
             String cantTxt = txtCantidad.getText().trim();
             if(!cantTxt.isEmpty()) { 
                 try { 
@@ -111,9 +103,6 @@ public class PedidosPanel extends JPanel {
                     res = res.stream().filter(p -> p.getCantidad() == c).collect(Collectors.toList()); 
                 } catch(Exception ex) {} 
             }
-            
-            // ELIMINADO: Lógica de filtro por ID Flor
-            
             cargarTabla(res);
         });
         
@@ -133,19 +122,30 @@ public class PedidosPanel extends JPanel {
             cargarTabla(dao.listar());
         });
 
+        // --- MODIFICADO: CONSULTAR (Muestra tabla de seleccionados) ---
         btnCons.addActionListener(e -> {
             List<Pedido> sel = model.getSeleccionados();
-            if(sel.size() != 1) { JOptionPane.showMessageDialog(this, "Selecciona UN registro."); return; }
-            PedidoDialog d = new PedidoDialog(SwingUtilities.getWindowAncestor(this), sel.get(0), true);
-            d.setVisible(true);
+            if(sel.isEmpty()) { JOptionPane.showMessageDialog(this, "Selecciona al menos un registro para consultar."); return; }
+            
+            JPanel pnlView = new JPanel(new BorderLayout());
+            pnlView.add(new JLabel("Detalle de los " + sel.size() + " pedidos seleccionados:"), BorderLayout.NORTH);
+            
+            DefaultTableModel tempModel = new DefaultTableModel(new String[]{"ID", "Flor", "Cantidad"}, 0);
+            for(Pedido p : sel) tempModel.addRow(new Object[]{p.getIdPedido(), (p.getFlor()!=null?p.getFlor().getNombreFlor():"-"), p.getCantidad()});
+            
+            JTable tempTable = new JTable(tempModel);
+            UiTheme.forceTableHeaderStyle(tempTable);
+            JScrollPane scroll = new JScrollPane(tempTable);
+            scroll.setPreferredSize(new Dimension(500, 200));
+            pnlView.add(scroll, BorderLayout.CENTER);
+
+            JOptionPane.showMessageDialog(this, pnlView, "Consulta de Pedidos", JOptionPane.INFORMATION_MESSAGE);
         });
 
-        // --- BOTÓN BORRAR CON TABLA CONFIRMACIÓN ---
         btnBaja.addActionListener(e -> {
             List<Pedido> sel = model.getSeleccionados();
             if(sel.isEmpty()) { JOptionPane.showMessageDialog(this, "Selecciona al menos un pedido."); return; }
             
-            // Tabla temporal confirmación
             JPanel pnlConfirm = new JPanel(new BorderLayout());
             pnlConfirm.add(new JLabel("¿Eliminar estos " + sel.size() + " pedidos?"), BorderLayout.NORTH);
             DefaultTableModel tempModel = new DefaultTableModel(new String[]{"ID", "Flor", "Cantidad"}, 0);

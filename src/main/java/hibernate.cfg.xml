@@ -13,5 +13,8 @@
 
         <mapping class="model.Flor"/>
         <mapping resource="model/Pedido.hbm.xml"/>
-        </session-factory>
+        
+        <mapping resource="model/Distribuidor.hbm.xml"/>
+
+    </session-factory>
 </hibernate-configuration>

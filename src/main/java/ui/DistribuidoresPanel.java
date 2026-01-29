@@ -37,11 +37,11 @@ public class DistribuidoresPanel extends JPanel {
         GridBagConstraints g = new GridBagConstraints();
         g.anchor = GridBagConstraints.WEST; g.insets = new Insets(5, 5, 5, 15);
 
-        // Filtros CIF y Nombre (Como en la imagen del PDF)
+        // Filtros CIF y Nombre
         g.gridx = 0; g.gridy = 0; pnlForm.add(new JLabel("CIF:"), g);
         g.gridx = 1; txtCif.setPreferredSize(new Dimension(100, 24)); UiTheme.styleTextField(txtCif); pnlForm.add(txtCif, g);
 
-        g.gridx = 2; pnlForm.add(new JLabel("Razón Social:"), g);
+        g.gridx = 2; pnlForm.add(new JLabel("Nombre:")); // <--- CAMBIO AQUÍ
         g.gridx = 3; g.weightx = 1.0; txtNombre.setPreferredSize(new Dimension(250, 24)); UiTheme.styleTextField(txtNombre); pnlForm.add(txtNombre, g);
 
         g.gridx = 0; g.gridy = 1; g.gridwidth = 4; g.weightx = 0.0; g.insets = new Insets(10, 5, 5, 5);
@@ -78,7 +78,7 @@ public class DistribuidoresPanel extends JPanel {
         JButton btnCons = UiTheme.createBtn("Consultar");
         JButton btnMod = UiTheme.createBtn("Modificar");
         JButton btnBaja = UiTheme.createBtn("Borrar Marcados");
-        JButton btnRel = UiTheme.createBtn("Ver Flores (N:M)"); // Botón Especial N:M
+        JButton btnRel = UiTheme.createBtn("Ver Flores Distribuidas"); 
 
         pnlSur.add(btnAlta); pnlSur.add(btnCons); pnlSur.add(btnMod); pnlSur.add(btnBaja); pnlSur.add(btnRel);
         add(pnlSur, BorderLayout.SOUTH);
@@ -110,14 +110,26 @@ public class DistribuidoresPanel extends JPanel {
             cargarTabla(dao.listar());
         });
 
+        // CONSULTAR (Tabla)
         btnCons.addActionListener(e -> {
             List<Distribuidor> sel = model.getSeleccionados();
-            if(sel.size()!=1) { JOptionPane.showMessageDialog(this,"Seleccione UN registro."); return; }
-            DistribuidorDialog d = new DistribuidorDialog(SwingUtilities.getWindowAncestor(this), sel.get(0), true);
-            d.setVisible(true);
+            if(sel.isEmpty()) { JOptionPane.showMessageDialog(this, "Selecciona al menos un registro para consultar."); return; }
+            
+            JPanel pnlView = new JPanel(new BorderLayout());
+            pnlView.add(new JLabel("Detalle de los " + sel.size() + " distribuidores seleccionados:"), BorderLayout.NORTH);
+            
+            DefaultTableModel tempModel = new DefaultTableModel(new String[]{"ID", "Nombre", "CIF"}, 0);
+            for(Distribuidor d : sel) tempModel.addRow(new Object[]{d.getIdDistribuidor(), d.getNombre(), d.getCif()});
+            
+            JTable tempTable = new JTable(tempModel);
+            UiTheme.forceTableHeaderStyle(tempTable);
+            JScrollPane scroll = new JScrollPane(tempTable);
+            scroll.setPreferredSize(new Dimension(500, 200));
+            pnlView.add(scroll, BorderLayout.CENTER);
+
+            JOptionPane.showMessageDialog(this, pnlView, "Consulta de Distribuidores", JOptionPane.INFORMATION_MESSAGE);
         });
         
-        // REQUISITO: Ver datos relacionados (N:M)
         btnRel.addActionListener(e -> {
             List<Distribuidor> sel = model.getSeleccionados();
             if(sel.size()!=1) { JOptionPane.showMessageDialog(this,"Seleccione UN distribuidor."); return; }

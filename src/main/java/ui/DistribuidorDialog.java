@@ -22,7 +22,7 @@ public class DistribuidorDialog extends JDialog {
 
         p.add(new JLabel("ID:")); p.add(txtId);
         p.add(new JLabel("CIF:")); p.add(txtCif);
-        p.add(new JLabel("Razón Social:")); p.add(txtNom);
+        p.add(new JLabel("Nombre:")); p.add(txtNom); // <--- CAMBIO AQUÍ
 
         JButton btnSave = UiTheme.createBtn("Guardar");
         if(!readOnly) p.add(new JLabel("")); 
