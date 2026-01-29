@@ -15,7 +15,7 @@ public class PedidosPanel extends JPanel {
     
     private JTextField txtFlor = new JTextField();
     private JTextField txtCantidad = new JTextField(); 
-    private JTextField txtIdFlor = new JTextField();
+    // ELIMINADO: private JTextField txtIdFlor = new JTextField();
     
     private JCheckBox chkSelectAll = new JCheckBox("Seleccionar todo");
     private JTable table;
@@ -36,6 +36,7 @@ public class PedidosPanel extends JPanel {
         GridBagConstraints g = new GridBagConstraints();
         g.anchor = GridBagConstraints.WEST; g.insets = new Insets(5, 5, 5, 15);
 
+        // Fila 1: Nombre Flor y Cantidad
         g.gridx = 0; g.gridy = 0; pnlForm.add(new JLabel("Nombre Flor:"), g);
         g.gridx = 1; g.weightx = 0.5; g.fill = GridBagConstraints.HORIZONTAL;
         txtFlor.setPreferredSize(new Dimension(150, 24)); UiTheme.styleTextField(txtFlor); pnlForm.add(txtFlor, g);
@@ -44,12 +45,13 @@ public class PedidosPanel extends JPanel {
         g.gridx = 3; g.weightx = 0.5; g.fill = GridBagConstraints.HORIZONTAL;
         txtCantidad.setPreferredSize(new Dimension(80, 24)); UiTheme.styleTextField(txtCantidad); pnlForm.add(txtCantidad, g);
 
-        g.gridx = 0; g.gridy = 1; g.fill = GridBagConstraints.NONE; pnlForm.add(new JLabel("ID Flor (FK):"), g);
-        g.gridx = 1; g.fill = GridBagConstraints.HORIZONTAL;
-        txtIdFlor.setPreferredSize(new Dimension(100, 24)); UiTheme.styleTextField(txtIdFlor); pnlForm.add(txtIdFlor, g);
+        // ELIMINADO: Fila que contenía el ID Flor (FK)
 
-        g.gridx = 0; g.gridy = 2; g.gridwidth = 4; g.weightx = 0.0; g.fill = GridBagConstraints.NONE;
+        // Fila 2: Botones (Movidos de la fila 2 a la fila 1 para aprovechar el espacio)
+        g.gridx = 0; g.gridy = 1; // Antes era gridy = 2
+        g.gridwidth = 4; g.weightx = 0.0; g.fill = GridBagConstraints.NONE;
         g.insets = new Insets(10, 5, 5, 5);
+        
         JPanel pBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pBtns.setBackground(UiTheme.BG_LIGHT);
         JButton btnBuscar = UiTheme.createBtn("Filtrar");
@@ -88,16 +90,33 @@ public class PedidosPanel extends JPanel {
         // --- EVENTOS ---
         cargarTabla(dao.listar());
         
-        btnRefrescar.addActionListener(e -> { txtFlor.setText(""); txtCantidad.setText(""); txtIdFlor.setText(""); cargarTabla(dao.listar()); });
+        btnRefrescar.addActionListener(e -> { 
+            txtFlor.setText(""); 
+            txtCantidad.setText(""); 
+            // ELIMINADO: txtIdFlor.setText("");
+            cargarTabla(dao.listar()); 
+        });
+        
         btnBuscar.addActionListener(e -> {
             List<Pedido> res = dao.listar();
+            
+            // 1. Filtro Flor
             if(!txtFlor.getText().isEmpty()) res = dao.buscar(txtFlor.getText());
+            
+            // 2. Filtro Cantidad
             String cantTxt = txtCantidad.getText().trim();
-            if(!cantTxt.isEmpty()) { try { int c = Integer.parseInt(cantTxt); res = res.stream().filter(p -> p.getCantidad() == c).collect(Collectors.toList()); } catch(Exception ex) {} }
-            String idFlorTxt = txtIdFlor.getText().trim();
-            if(!idFlorTxt.isEmpty()) { try { int idF = Integer.parseInt(idFlorTxt); res = res.stream().filter(p -> p.getFlor() != null && p.getFlor().getIdFlor() == idF).collect(Collectors.toList()); } catch(Exception ex) {} }
+            if(!cantTxt.isEmpty()) { 
+                try { 
+                    int c = Integer.parseInt(cantTxt); 
+                    res = res.stream().filter(p -> p.getCantidad() == c).collect(Collectors.toList()); 
+                } catch(Exception ex) {} 
+            }
+            
+            // ELIMINADO: Lógica de filtro por ID Flor
+            
             cargarTabla(res);
         });
+        
         chkSelectAll.addActionListener(e -> { model.seleccionarTodo(chkSelectAll.isSelected()); table.repaint(); });
 
         btnAlta.addActionListener(e -> {
