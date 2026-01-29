@@ -3,9 +3,10 @@ package ui;
 import model.Flor;
 import model.Pedido;
 import persistence.FlorDAO;
-import persistence.PedidoDAO; // Necesario para buscar asociados
+import persistence.PedidoDAO;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.stream.Collectors;
 
 public class FloresPanel extends JPanel {
     private FlorDAO dao = new FlorDAO();
-    private PedidoDAO pedidoDAO = new PedidoDAO(); // Para la consulta relacionada
+    private PedidoDAO pedidoDAO = new PedidoDAO();
     
     private JTextField txtId = new JTextField();
     private JTextField txtNombre = new JTextField();
@@ -77,7 +78,7 @@ public class FloresPanel extends JPanel {
         JButton btnCons = UiTheme.createBtn("Consultar");
         JButton btnMod = UiTheme.createBtn("Modificar");
         JButton btnEliminar = UiTheme.createBtn("Eliminar");
-        JButton btnRel = UiTheme.createBtn("Ver Pedidos Asociados"); // <--- NUEVO REQUISITO
+        JButton btnRel = UiTheme.createBtn("Ver Pedidos Asociados");
 
         pnlSur.add(btnAlta); pnlSur.add(btnCons); pnlSur.add(btnMod); pnlSur.add(btnEliminar); pnlSur.add(btnRel);
         add(pnlSur, BorderLayout.SOUTH);
@@ -117,35 +118,52 @@ public class FloresPanel extends JPanel {
         btnCons.addActionListener(e -> {
             List<Flor> s = model.getSeleccionados();
             if(s.size()!=1) { JOptionPane.showMessageDialog(this,"Selecciona UNA flor."); return; }
-            // Modo solo lectura (true)
             FlorDialog d = new FlorDialog(SwingUtilities.getWindowAncestor(this), "Consultar", s.get(0), true);
             d.setVisible(true);
         });
 
-        // REQUISITO: Consultar registro relacionado dado la PK
         btnRel.addActionListener(e -> {
             List<Flor> s = model.getSeleccionados();
-            if(s.size()!=1) { JOptionPane.showMessageDialog(this,"Selecciona UNA flor para ver sus pedidos."); return; }
-            
+            if(s.size()!=1) { JOptionPane.showMessageDialog(this,"Selecciona UNA flor."); return; }
             Flor f = s.get(0);
             List<Pedido> pedidos = pedidoDAO.listar().stream()
-                .filter(p -> p.getFlor().getIdFlor() == f.getIdFlor())
-                .collect(Collectors.toList());
-            
-            if(pedidos.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "La flor '" + f.getNombreFlor() + "' no tiene pedidos.");
-            } else {
+                .filter(p -> p.getFlor().getIdFlor() == f.getIdFlor()).collect(Collectors.toList());
+            if(pedidos.isEmpty()) JOptionPane.showMessageDialog(this, "La flor '" + f.getNombreFlor() + "' no tiene pedidos.");
+            else {
                 String msj = "Pedidos de " + f.getNombreFlor() + ":\n";
                 for(Pedido p : pedidos) msj += "- Pedido " + p.getIdPedido() + " (" + p.getCantidad() + " uds)\n";
                 JOptionPane.showMessageDialog(this, msj);
             }
         });
 
+        // --- BOTÓN ELIMINAR CON TABLA DE CONFIRMACIÓN ---
         btnEliminar.addActionListener(e -> {
             List<Flor> s = model.getSeleccionados();
-            if(s.isEmpty()) return;
-            if(JOptionPane.showConfirmDialog(this,"¿Borrar " + s.size() + " flores?") == JOptionPane.YES_OPTION) {
-                try { for(Flor f : s) dao.borrar(f.getIdFlor()); cargarTabla(dao.listar()); }
+            if(s.isEmpty()) { JOptionPane.showMessageDialog(this, "Selecciona al menos una flor."); return; }
+
+            // 1. Crear Panel con Tabla para el Dialog
+            JPanel pnlConfirm = new JPanel(new BorderLayout());
+            pnlConfirm.add(new JLabel("¿Desea ELIMINAR permanentemente estos " + s.size() + " registros?"), BorderLayout.NORTH);
+            pnlConfirm.add(new JLabel("(Se borrarán también sus pedidos asociados)"), BorderLayout.SOUTH);
+            
+            // Modelo temporal simple
+            DefaultTableModel tempModel = new DefaultTableModel(new String[]{"ID", "Nombre", "Color"}, 0);
+            for(Flor f : s) tempModel.addRow(new Object[]{f.getIdFlor(), f.getNombreFlor(), f.getColor()});
+            
+            JTable tempTable = new JTable(tempModel);
+            UiTheme.forceTableHeaderStyle(tempTable);
+            JScrollPane scroll = new JScrollPane(tempTable);
+            scroll.setPreferredSize(new Dimension(400, 150));
+            pnlConfirm.add(scroll, BorderLayout.CENTER);
+
+            // 2. Mostrar Dialog
+            int opt = JOptionPane.showConfirmDialog(this, pnlConfirm, "Confirmar Borrado", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            
+            if(opt == JOptionPane.YES_OPTION) {
+                try { 
+                    for(Flor f : s) dao.borrar(f.getIdFlor()); // Ahora usa el borrado en cascada del DAO
+                    cargarTabla(dao.listar()); 
+                }
                 catch(Exception ex) { JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage()); }
             }
         });

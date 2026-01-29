@@ -1,0 +1,14 @@
+<hibernate-mapping package="model">
+    <class name="Distribuidor" table="DISTRIBUIDORES">
+        <id name="idDistribuidor" column="ID_DISTRIBUIDOR">
+            <generator class="assigned"/>
+        </id>
+        <property name="cif" column="CIF"/>
+        <property name="nombre" column="NOMBRE"/>
+
+        <set name="flores" table="FLOR_DISTRIBUIDOR" lazy="false" fetch="select" cascade="none">
+            <key column="ID_DISTRIBUIDOR"/>
+            <many-to-many class="model.Flor" column="ID_FLOR"/>
+        </set>
+    </class>
+</hibernate-mapping>
