@@ -1,0 +1,10 @@
+<hibernate-mapping package="model">
+    <class name="Pedido" table="PEDIDOS">
+        <id name="idPedido" column="ID_PEDIDO">
+            <generator class="assigned"/>
+        </id>
+        <property name="cantidad" column="CANTIDAD" type="int"/>
+        
+        <many-to-one name="flor" class="model.Flor" column="ID_FLOR" not-null="true" lazy="false"/>
+    </class>
+</hibernate-mapping>
