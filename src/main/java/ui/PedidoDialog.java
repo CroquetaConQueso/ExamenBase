@@ -15,51 +15,62 @@ public class PedidoDialog extends JDialog {
     private JTextField txtCant = new JTextField();
     private JComboBox<Flor> cbFlor = new JComboBox<>();
 
-    public PedidoDialog(Window owner) {
-        super(owner, "Nuevo Pedido", ModalityType.APPLICATION_MODAL);
+    public PedidoDialog(Window owner, Pedido pedido, boolean readOnly) {
+        super(owner, (readOnly ? "Consultar Pedido" : (pedido == null ? "Nuevo Pedido" : "Modificar Pedido")), ModalityType.APPLICATION_MODAL);
         setSize(400, 300);
         setLocationRelativeTo(owner);
         
-        // Panel con fondo claro
         JPanel p = new JPanel(new GridLayout(4, 2, 10, 10));
         p.setBackground(UiTheme.BG_LIGHT);
         p.setBorder(BorderFactory.createEmptyBorder(20,20,20,20));
 
-        // Cargar Flores en el Combo
-        try {
-            for(Flor f : florDAO.listar()) cbFlor.addItem(f);
-        } catch(Exception e) {}
+        try { for(Flor f : florDAO.listar()) cbFlor.addItem(f); } catch(Exception e) {}
 
-        // Estilos
         UiTheme.styleTextField(txtId);
         UiTheme.styleTextField(txtCant);
-        cbFlor.setBackground(Color.WHITE); // Fondo blanco para el combo
+        cbFlor.setBackground(Color.WHITE);
 
         p.add(new JLabel("ID Pedido:")); p.add(txtId);
         p.add(new JLabel("Flor:"));      p.add(cbFlor);
         p.add(new JLabel("Cantidad:"));  p.add(txtCant);
 
-        // Botón corregido
         JButton btnSave = UiTheme.createBtn("Guardar");
-        p.add(new JLabel("")); p.add(btnSave);
+        
+        if(!readOnly) {
+            p.add(new JLabel("")); p.add(btnSave);
+        }
 
         add(p);
 
-        // Lógica
+        if (pedido != null) {
+            txtId.setText(String.valueOf(pedido.getIdPedido()));
+            txtId.setEditable(false);
+            txtCant.setText(String.valueOf(pedido.getCantidad()));
+            if(pedido.getFlor() != null) {
+                for(int i=0; i<cbFlor.getItemCount(); i++) {
+                    if(cbFlor.getItemAt(i).getIdFlor() == pedido.getFlor().getIdFlor()) {
+                        cbFlor.setSelectedIndex(i); break;
+                    }
+                }
+            }
+        }
+
+        if(readOnly) {
+            txtCant.setEditable(false);
+            cbFlor.setEnabled(false);
+        }
+
         btnSave.addActionListener(e -> {
             try {
                 int id = Integer.parseInt(txtId.getText());
                 int cant = Integer.parseInt(txtCant.getText());
                 Flor florSel = (Flor) cbFlor.getSelectedItem();
-                
-                if(florSel == null) throw new Exception("Debes seleccionar una flor.");
-
+                if(florSel == null) throw new Exception("Selecciona flor.");
                 Pedido nuevo = new Pedido(id, florSel, cant);
-                pedidoDAO.insertar(nuevo);
+                if(pedido == null) pedidoDAO.insertar(nuevo);
+                else pedidoDAO.actualizar(nuevo);
                 dispose();
-            } catch(Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
-            }
+            } catch(Exception ex) { JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage()); }
         });
     }
 }
