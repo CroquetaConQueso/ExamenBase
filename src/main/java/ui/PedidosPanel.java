@@ -9,86 +9,102 @@ import java.util.List;
 
 public class PedidosPanel extends JPanel {
     private PedidoDAO dao = new PedidoDAO();
-    private JTextField txtFlor = new JTextField(15);
+    private JTextField txtFlor = new JTextField();
     private JTable table;
     private DefaultTableModel model;
+    private JLabel lblTotal = new JLabel("Registros: 0");
 
     public PedidosPanel() {
-        setLayout(new BorderLayout(10, 10));
-        setBackground(UiTheme.BG_DARK);
-        setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        setLayout(new BorderLayout(0, 0));
+        setBackground(UiTheme.BG_LIGHT);
 
-        // --- 1. Filtros ---
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        top.setBackground(UiTheme.SURFACE);
-        top.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(UiTheme.ACCENT), "Buscar Pedidos", 0,0, null, UiTheme.ACCENT));
+        // ZONA SUPERIOR
+        JPanel pnlNorte = new JPanel();
+        pnlNorte.setLayout(new BoxLayout(pnlNorte, BoxLayout.Y_AXIS));
+        pnlNorte.add(UiTheme.createBlueHeader("Buscar Pedidos"));
+
+        // Formulario Horizontal con GridBagLayout
+        JPanel pnlForm = new JPanel(new GridBagLayout());
+        pnlForm.setBackground(UiTheme.BG_LIGHT);
+        pnlForm.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        GridBagConstraints g = new GridBagConstraints();
+        g.anchor = GridBagConstraints.WEST; g.insets = new Insets(5, 5, 5, 15);
+
+        // Fila 1: Filtro
+        g.gridx = 0; g.gridy = 0;
+        pnlForm.add(new JLabel("Nombre Flor:"), g);
         
+        g.gridx = 1; g.weightx = 1.0;
+        txtFlor.setPreferredSize(new Dimension(200, 24));
         UiTheme.styleTextField(txtFlor);
-        JButton btnBuscar = UiTheme.createBtn("Filtrar por Flor", UiTheme.ACCENT, Color.BLACK);
-        JButton btnRefrescar = UiTheme.createBtn("Refrescar", UiTheme.NEUTRAL, Color.BLACK);
+        pnlForm.add(txtFlor, g);
 
-        top.add(new JLabel("Nombre Flor:")); top.add(txtFlor);
-        top.add(btnBuscar); top.add(btnRefrescar);
+        // Fila 2: Botones
+        g.gridx = 0; g.gridy = 1; g.gridwidth = 2; g.weightx = 0.0;
+        g.insets = new Insets(10, 5, 5, 5);
+        
+        JPanel pBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pBtns.setBackground(UiTheme.BG_LIGHT);
+        JButton btnBuscar = UiTheme.createBtn("Filtrar");
+        JButton btnRefrescar = UiTheme.createBtn("Refrescar");
+        pBtns.add(btnBuscar); pBtns.add(Box.createHorizontalStrut(15)); pBtns.add(btnRefrescar);
+        
+        pnlForm.add(pBtns, g);
 
-        add(top, BorderLayout.NORTH);
+        pnlNorte.add(pnlForm);
+        add(pnlNorte, BorderLayout.NORTH);
 
-        // --- 2. Tabla ---
+        // ZONA CENTRAL
+        JPanel pnlCentro = new JPanel(new BorderLayout());
+        pnlCentro.add(UiTheme.createBlueHeader("Selección de Pedidos"), BorderLayout.NORTH);
+
         String[] cols = {"ID Pedido", "Flor", "Cantidad"};
-        model = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int r, int c) { return false; }
-        };
+        model = new DefaultTableModel(cols, 0) { public boolean isCellEditable(int r, int c) { return false; } };
         table = new JTable(model);
-        table.setRowHeight(25);
+        table.setRowHeight(22);
         UiTheme.forceTableHeaderStyle(table);
-        JScrollPane scroll = new JScrollPane(table);
-        scroll.getViewport().setBackground(UiTheme.SURFACE);
-        scroll.setBorder(BorderFactory.createLineBorder(UiTheme.ACCENT));
         
-        add(scroll, BorderLayout.CENTER);
-
-        // --- 3. Botones ---
-        JPanel bot = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        bot.setBackground(UiTheme.BG_DARK);
-        JButton btnAdd = UiTheme.createBtn("Nuevo Pedido", UiTheme.ACCENT, Color.BLACK);
-        JButton btnDel = UiTheme.createBtn("Borrar Seleccionado", UiTheme.DANGER, Color.WHITE);
+        pnlCentro.add(new JScrollPane(table), BorderLayout.CENTER);
         
-        bot.add(btnAdd); bot.add(btnDel);
-        add(bot, BorderLayout.SOUTH);
+        JPanel pnlFooter = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        pnlFooter.setBackground(UiTheme.BG_LIGHT);
+        pnlFooter.add(lblTotal);
+        pnlCentro.add(pnlFooter, BorderLayout.SOUTH);
+        
+        add(pnlCentro, BorderLayout.CENTER);
 
-        // --- Lógica ---
+        // ZONA INFERIOR
+        JPanel pnlSur = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        pnlSur.setBackground(UiTheme.BG_LIGHT);
+        pnlSur.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY));
+        
+        JButton btnAlta = UiTheme.createBtn("Nuevo Pedido");
+        JButton btnBaja = UiTheme.createBtn("Borrar Pedido");
+        pnlSur.add(btnAlta); pnlSur.add(btnBaja);
+        add(pnlSur, BorderLayout.SOUTH);
+
+        // Lógica
         cargarTabla(dao.listar());
-
         btnRefrescar.addActionListener(e -> { txtFlor.setText(""); cargarTabla(dao.listar()); });
         btnBuscar.addActionListener(e -> cargarTabla(dao.buscar(txtFlor.getText())));
-
-        btnAdd.addActionListener(e -> {
-            // Abre el JDialog modal
+        btnAlta.addActionListener(e -> {
             PedidoDialog d = new PedidoDialog(SwingUtilities.getWindowAncestor(this));
             d.setVisible(true);
             cargarTabla(dao.listar());
         });
-
-        btnDel.addActionListener(e -> {
+        btnBaja.addActionListener(e -> {
             int r = table.getSelectedRow();
-            if(r == -1) { JOptionPane.showMessageDialog(this, "Selecciona un pedido."); return; }
+            if(r == -1) return;
             int id = (int) table.getValueAt(r, 0);
-            
             if(JOptionPane.showConfirmDialog(this, "¿Borrar pedido " + id + "?") == JOptionPane.YES_OPTION) {
-                try {
-                    dao.borrar(id);
-                    cargarTabla(dao.listar());
-                } catch(Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
-                }
+                try { dao.borrar(id); cargarTabla(dao.listar()); } catch(Exception ex) {}
             }
         });
     }
 
     private void cargarTabla(List<Pedido> l) {
         model.setRowCount(0);
-        for(Pedido p : l) {
-            String nombreFlor = (p.getFlor() != null) ? p.getFlor().getNombreFlor() : "---";
-            model.addRow(new Object[]{ p.getIdPedido(), nombreFlor, p.getCantidad() });
-        }
+        for(Pedido p : l) model.addRow(new Object[]{p.getIdPedido(), (p.getFlor()!=null?p.getFlor().getNombreFlor():"-"), p.getCantidad()});
+        lblTotal.setText("Registros: " + l.size());
     }
 }
